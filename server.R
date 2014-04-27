@@ -300,6 +300,10 @@ output$text1 <- renderText({
   ))
 })
 
+output$textforDataTable <- renderText({
+  print(paste("showing", (nrow(dataInput())), "genes passing filters"))
+})
+
 output$table1 <- renderTable({
   # TO DO : clean up output table widths. not critical now.  
   tableOut()
