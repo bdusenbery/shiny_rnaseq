@@ -1,4 +1,5 @@
 library(ggvis)
+library("shinyIncubator")
 shinyUI(navbarPage(
   "iMN paper resource", 
   tabPanel("About", 
@@ -14,6 +15,7 @@ shinyUI(navbarPage(
   ),
   
   tabPanel("Comparison Explorer",
+          
            fluidRow(
              column(3, 
                     wellPanel(
@@ -91,7 +93,8 @@ shinyUI(navbarPage(
                                         # which requires significant loading/comput time. 
                                         helpText("Interactive plot function allows individual genes to 
                                                  identified by mouse over, but reduces app speed overall.
-                                                 Uncheck box to improve performance.")
+                                                 Uncheck box to improve performance.  It may take a moment 
+                                                 for the interactive plot to appear.")
                                  ),
                                  br(),
                                  fluidRow(

@@ -5,6 +5,7 @@ library("shiny")
 library("ggplot2")
 library("dplyr")
 library("ggvis")
+library("shinyIncubator")
 # data
 dat <- readRDS("data/iMN_data.rds")
 
@@ -14,6 +15,12 @@ shinyServer(
     # selecting the comparisons from the big data table is probably the slowest operation and should only be done once
     # until the selection is changed awesome. this helps a lot. 
     dataSelect <- reactive({
+      withProgress(session, {
+        setProgress(message = "Calculating, please wait", 
+                    detail = "This may take a few moments...")
+        setProgress(detail = "Almost there... ")
+      })
+      
       sampleXname <- switch(input$xAxis, 
                             "Embryonic MNs" = "embryonic_MN", 
                             "iMNs" = "iMN", 
@@ -43,9 +50,11 @@ shinyServer(
       # select samples
       datRes <- filter(dat, ((sample_1 == sampleYname & sample_2 == sampleXname) |
                                (sample_1 == sampleXname & sample_2 == sampleYname)))
+      
+      
     })
     
-    # To do: add progress bar. 
+    
     
     dataInput <- reactive({
       
@@ -157,9 +166,12 @@ shinyServer(
     # making the plots interactive causes a pretty massive slow down. show just static plot first 
     # then give option of showing interactive plot. 
     
-    
+    # TO DO - add progress indicator- currently not working great. 
     
     plots <- reactive({
+     
+      
+      
       sampleXname <- switch(input$xAxis, 
                             "Embryonic MNs" = "embryonic_MN", 
                             "iMNs" = "iMN", 
@@ -210,6 +222,8 @@ shinyServer(
     })
     
     gv <- reactive({
+      
+            
       # if not show interactive plot, just return empty gv object.  this helps speed up. 
       #dummy plot, 
       if(!input$showInteract){
