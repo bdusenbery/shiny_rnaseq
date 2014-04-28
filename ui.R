@@ -7,6 +7,7 @@ shinyUI(navbarPage(
                     includeMarkdown("about.md")
              ),
              column(3
+                    
                     # extra spacing)
              )
            )
@@ -82,14 +83,20 @@ shinyUI(navbarPage(
                       ),
                       tabPanel("Interactive Plot", 
                                fluidRow(
-                                 column(9, 
-                                        checkboxInput("showInteract", "show interactive plot")
+                                 column(4, 
+                                        checkboxInput("showInteract", "show interactive plot", value=FALSE)
                                  ),
-                                 column(3, 
-                                        actionButton("interact", "Refresh Interactive Plot")
+                                 column(8, 
+                                        # use an action button here to isolate the interactive plot
+                                        # which requires significant loading/comput time. 
+                                        helpText("Interactive plot function allows individual genes to 
+                                                 identified by mouse over, but reduces app speed overall.
+                                                 Uncheck box to improve performance.")
                                  ),
                                  br(),
                                  fluidRow(
+                                   textOutput("interactText"),
+                                   #plotOutput("interactivePlot")
                                    ggvis_output(plot_id="myplot")
                                  )
                                )
@@ -97,7 +104,7 @@ shinyUI(navbarPage(
                       tabPanel("data",
                                fluidRow(
                                  column(8, 
-                                       textOutput("textforDataTable")), 
+                                        textOutput("textforDataTable")), 
                                  column(4,
                                         downloadButton("downloadData", "Save selected Data as CSV")
                                  )

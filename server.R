@@ -45,6 +45,7 @@ shinyServer(
                                (sample_1 == sampleXname & sample_2 == sampleYname)))
     })
     
+    # To do: add progress bar. 
     
     dataInput <- reactive({
       
@@ -196,7 +197,7 @@ shinyServer(
       ylabel <- paste(fpkmTransformRes, input$yAxis, sep=" ")
       xlabel <- paste(fpkmTransformRes, input$xAxis, sep=" ")
       
-     
+      
       if((dataInput()[1, "sample_1"] == sampleXname) & (dataInput()[1, "sample_2"] == sampleYname)){
         gp <- ggplot(dataInput(), aes(x=value_1, y=value_2))+geom_point(alpha =.5) + theme_classic()+
           xlab(xlabel) + ylab(ylabel) + scale_x_continuous(expand=c(0,0), limits=c(0,12))+
@@ -206,122 +207,120 @@ shinyServer(
           xlab(xlabel) + ylab(ylabel) + scale_x_continuous(expand=c(0,0), limits=c(0,12))+
           scale_y_continuous(expand=c(0,0), limits=c(0,12))
       }
+    })
+    
+    gv <- reactive({
+      # if not show interactive plot, just return empty gv object.  this helps speed up. 
+      #dummy plot, 
+      if(!input$showInteract){
+        gv <- ggvis()
+      }else{
+        sampleXname <- switch(input$xAxis, 
+                              "Embryonic MNs" = "embryonic_MN", 
+                              "iMNs" = "iMN", 
+                              "ESC MNs" = "mES_MN", 
+                              "iPSC MNs" = "miPS_MN", 
+                              "ESC" = "mES", 
+                              "iPSC" = "miPS", 
+                              "MEF1" = "Fib_d15_N3",
+                              "MEF2" = "Fib_d15_FBS", 
+                              "MEF3" = "Fib_d15_FBS_1p", 
+                              "MEF4" = "Fib_d2_FBS")
+        
+        sampleYname <- switch(input$yAxis, 
+                              "Embryonic MNs" = "embryonic_MN", 
+                              "iMNs" = "iMN", 
+                              "ESC MNs" = "mES_MN", 
+                              "iPSC MNs" = "miPS_MN", 
+                              "ESC" = "mES", 
+                              "iPSC" = "miPS", 
+                              "MEF1" = "Fib_d15_N3",
+                              "MEF2" = "Fib_d15_FBS", 
+                              "MEF3" = "Fib_d15_FBS_1p", 
+                              "MEF4" = "Fib_d2_FBS")
+        
+        # determine axis transformation. 
+        if(input$fpkmTransform == 1){
+          fpkmTransformRes <- "log2 FPKM"
+        }else if (input$fpkmTransform == 2){
+          fpkmTransformRes <- "log10 FPKM"
+        }else{
+          fpkmTransformRes <- "FPKM"
+        }
+        
+        ylabel <- paste(fpkmTransformRes, input$yAxis, sep=" ")
+        xlabel <- paste(fpkmTransformRes, input$xAxis, sep=" ")
+        
+        if((dataInput()[1, "sample_1"] == sampleXname) & (dataInput()[1, "sample_2"] == sampleYname)){
+          gv <- ggvis(dataInput(), props(x = ~value_1, y= ~value_2))+layer_point(props(fillOpacity := .5))
+        }else{
+          gv <- ggvis(dataInput(), props(x = ~value_2, y= ~value_1))+layer_point(props(fillOpacity := .5))
+        }
+        
+        # tool tip text. 
+        all_values <- function(x) {
+          if(is.null(x)) return(NULL)
+          format(x$gene)
+          # to give values: 
+          #paste0(names(x), ": ", format(x), collapse = "<br />")
+        }
+        
+        
+        gv <- gv + guide_axis(type="x", title=xlabel) +
+          guide_axis(type="y", title=ylabel) + 
+          mark_point(props(size := 50, size.hover := 200, 
+                           fillOpacity := .1, fillOpacity.hover :=.5,
+                           fill.hover := "red",
+                           key := ~gene))+tooltip(all_values) 
+      }
+      
+    })
+    
+    
+    
+    output$plot1 <- renderPlot({
+      print(plots())
+    })  
+    
+    observe_ggvis(gv, "myplot", session)
+    
+    output$titleText <- renderText({
+      paste(input$yAxis, "vs", input$xAxis
+      ) 
+    })
+    
+    output$titleText2 <- renderText({
+      paste0(input$yAxis, " vs ", input$xAxis, ". genes passing filters: ", (nrow(dataInput()))
+      ) 
+    })
+    
+    
+    output$text1 <- renderText({
+      print(paste("Number of genes passing filters:", (nrow(dataInput()))
+      ))
+    })
+    
+    output$textforDataTable <- renderText({
+      print(paste("showing", (nrow(dataInput())), "genes passing filters"))
+    })
+    
+    output$table1 <- renderTable({
+      # TO DO : clean up output table widths. not critical now.  
+      tableOut()
+    }, digits=4, include.rownames = FALSE)
+    
+    output$downloadData <- downloadHandler(
+      filename = c("data.txt"), 
+      content = function(file){
+        write.table(tableOut(), file, sep="\t", quote=F, row.names=F)
+      })
+    
+    
+    
+    
+    
+    
+    
+    
+    
   })
-  
-  gv <- reactive({
-    sampleXname <- switch(input$xAxis, 
-                          "Embryonic MNs" = "embryonic_MN", 
-                          "iMNs" = "iMN", 
-                          "ESC MNs" = "mES_MN", 
-                          "iPSC MNs" = "miPS_MN", 
-                          "ESC" = "mES", 
-                          "iPSC" = "miPS", 
-                          "MEF1" = "Fib_d15_N3",
-                          "MEF2" = "Fib_d15_FBS", 
-                          "MEF3" = "Fib_d15_FBS_1p", 
-                          "MEF4" = "Fib_d2_FBS")
-    
-    sampleYname <- switch(input$yAxis, 
-                          "Embryonic MNs" = "embryonic_MN", 
-                          "iMNs" = "iMN", 
-                          "ESC MNs" = "mES_MN", 
-                          "iPSC MNs" = "miPS_MN", 
-                          "ESC" = "mES", 
-                          "iPSC" = "miPS", 
-                          "MEF1" = "Fib_d15_N3",
-                          "MEF2" = "Fib_d15_FBS", 
-                          "MEF3" = "Fib_d15_FBS_1p", 
-                          "MEF4" = "Fib_d2_FBS")
-    
-    # determine axis transformation. 
-    if(input$fpkmTransform == 1){
-      fpkmTransformRes <- "log2 FPKM"
-    }else if (input$fpkmTransform == 2){
-      fpkmTransformRes <- "log10 FPKM"
-    }else{
-      fpkmTransformRes <- "FPKM"
-    }
-    
-    
-    ylabel <- paste(fpkmTransformRes, input$yAxis, sep=" ")
-    xlabel <- paste(fpkmTransformRes, input$xAxis, sep=" ")
-    
-    # TO DO add tool tips. 
-    
-    if((dataInput()[1, "sample_1"] == sampleXname) & (dataInput()[1, "sample_2"] == sampleYname)){
-      gv <- ggvis(dataInput(), props(x = ~value_1, y= ~value_2))+layer_point(props(fillOpacity := .5))
-    }else{
-      gv <- ggvis(dataInput(), props(x = ~value_2, y= ~value_1))+layer_point(props(fillOpacity := .5))
-    }
-    
-    # tool tip text. 
-    all_values <- function(x) {
-      if(is.null(x)) return(NULL)
-      format(x$gene)
-      # to give values: 
-      #paste0(names(x), ": ", format(x), collapse = "<br />")
-    }
-    
-    
-    gv <- gv + guide_axis(type="x", title=xlabel) +
-      guide_axis(type="y", title=ylabel) + 
-      mark_point(props(size := 50, size.hover := 200, 
-                       fillOpacity := .1, fillOpacity.hover :=.5,
-                       fill.hover := "red",
-                       key := ~gene))+tooltip(all_values)
-    
-  }) 
-     
-
-
-#     
-
-output$plot1 <- renderPlot({
-  print(plots())
-})  
-
-
-observe_ggvis(gv, "myplot", session)
-
-
-output$titleText <- renderText({
-  paste(input$yAxis, "vs", input$xAxis
-  ) 
-})
-
-output$titleText2 <- renderText({
-  paste0(input$yAxis, " vs ", input$xAxis, ". genes passing filters: ", (nrow(dataInput()))
-  ) 
-})
-
-
-output$text1 <- renderText({
-  print(paste("Number of genes passing filters:", (nrow(dataInput()))
-  ))
-})
-
-output$textforDataTable <- renderText({
-  print(paste("showing", (nrow(dataInput())), "genes passing filters"))
-})
-
-output$table1 <- renderTable({
-  # TO DO : clean up output table widths. not critical now.  
-  tableOut()
-  
-}, digits=4, include.rownames = FALSE)
-
-output$downloadData <- downloadHandler(
-  filename = c("data.txt"), 
-  content = function(file){
-    write.table(tableOut(), file, sep="\t", quote=F, row.names=F)
-  })
-
-
-
-
-
-
-
-
-
-})
