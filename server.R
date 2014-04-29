@@ -7,7 +7,15 @@ library("dplyr")
 library("ggvis")
 library("shinyIncubator")
 # data
-dat <- readRDS("data/iMN_data.rds")
+dat <- readRDS("data/iMN_diff.rds")
+fpkm <- readRDS("data/genesFpkm.rds")
+fpkm$sample_good_name <- factor(fpkm$sample_good_name, levels =c(
+  "Embryonic MNs", "iMNs", "ESC MNs", "iPSC MNs", "MEF1", "MEF2", "MEF3", "MEF4","ESC", "iPSC"), 
+  ordered=T)
+
+
+source("helper.R")
+#allGeneIds <- as.character(fpkm$gene)
 
 shinyServer(
   function(input, output, session) {
@@ -21,70 +29,21 @@ shinyServer(
         setProgress(detail = "Almost there... ")
       })
       
-      sampleXname <- switch(input$xAxis, 
-                            "Embryonic MNs" = "embryonic_MN", 
-                            "iMNs" = "iMN", 
-                            "ESC MNs" = "mES_MN", 
-                            "iPSC MNs" = "miPS_MN", 
-                            "ESC" = "mES", 
-                            "iPSC" = "miPS", 
-                            "MEF1" = "Fib_d15_N3",
-                            "MEF2" = "Fib_d15_FBS", 
-                            "MEF3" = "Fib_d15_FBS_1p", 
-                            "MEF4" = "Fib_d2_FBS")
+      sampleXname <- input$xAxis
       
-      sampleYname <- switch(input$yAxis, 
-                            "Embryonic MNs" = "embryonic_MN", 
-                            "iMNs" = "iMN", 
-                            "ESC MNs" = "mES_MN", 
-                            "iPSC MNs" = "miPS_MN", 
-                            "ESC" = "mES", 
-                            "iPSC" = "miPS", 
-                            "MEF1" = "Fib_d15_N3",
-                            "MEF2" = "Fib_d15_FBS", 
-                            "MEF3" = "Fib_d15_FBS_1p", 
-                            "MEF4" = "Fib_d2_FBS")
-      
-      
+      sampleYname <- input$yAxis    
       
       # select samples
       datRes <- filter(dat, ((sample_1 == sampleYname & sample_2 == sampleXname) |
                                (sample_1 == sampleXname & sample_2 == sampleYname)))
-      
-      
+            
     })
-    
-    
     
     dataInput <- reactive({
       
-      sampleXname <- switch(input$xAxis, 
-                            "Embryonic MNs" = "embryonic_MN", 
-                            "iMNs" = "iMN", 
-                            "ESC MNs" = "mES_MN", 
-                            "iPSC MNs" = "miPS_MN", 
-                            "ESC" = "mES", 
-                            "iPSC" = "miPS", 
-                            "MEF1" = "Fib_d15_N3",
-                            "MEF2" = "Fib_d15_FBS", 
-                            "MEF3" = "Fib_d15_FBS_1p", 
-                            "MEF4" = "Fib_d2_FBS")
-      
-      sampleYname <- switch(input$yAxis, 
-                            "Embryonic MNs" = "embryonic_MN", 
-                            "iMNs" = "iMN", 
-                            "ESC MNs" = "mES_MN", 
-                            "iPSC MNs" = "miPS_MN", 
-                            "ESC" = "mES", 
-                            "iPSC" = "miPS", 
-                            "MEF1" = "Fib_d15_N3",
-                            "MEF2" = "Fib_d15_FBS", 
-                            "MEF3" = "Fib_d15_FBS_1p", 
-                            "MEF4" = "Fib_d2_FBS")
-      
-      
-      
-      
+      sampleXname <- input$xAxis
+       
+      sampleYname <- input$yAxis      
       
       # select fold change between desired quantities and use pseudo (+1 before log2 transformation)
       if(input$pseudoFC){
@@ -170,31 +129,10 @@ shinyServer(
     
     plots <- reactive({
      
-      
-      
-      sampleXname <- switch(input$xAxis, 
-                            "Embryonic MNs" = "embryonic_MN", 
-                            "iMNs" = "iMN", 
-                            "ESC MNs" = "mES_MN", 
-                            "iPSC MNs" = "miPS_MN", 
-                            "ESC" = "mES", 
-                            "iPSC" = "miPS", 
-                            "MEF1" = "Fib_d15_N3",
-                            "MEF2" = "Fib_d15_FBS", 
-                            "MEF3" = "Fib_d15_FBS_1p", 
-                            "MEF4" = "Fib_d2_FBS")
-      
-      sampleYname <- switch(input$yAxis, 
-                            "Embryonic MNs" = "embryonic_MN", 
-                            "iMNs" = "iMN", 
-                            "ESC MNs" = "mES_MN", 
-                            "iPSC MNs" = "miPS_MN", 
-                            "ESC" = "mES", 
-                            "iPSC" = "miPS", 
-                            "MEF1" = "Fib_d15_N3",
-                            "MEF2" = "Fib_d15_FBS", 
-                            "MEF3" = "Fib_d15_FBS_1p", 
-                            "MEF4" = "Fib_d2_FBS")
+      sampleXname <- input$xAxis
+        
+      sampleYname <- input$yAxis
+        
       
       # determine axis transformation. 
       if(input$fpkmTransform == 1){
@@ -222,36 +160,14 @@ shinyServer(
     })
     
     gv <- reactive({
-      
-            
       # if not show interactive plot, just return empty gv object.  this helps speed up. 
       #dummy plot, 
       if(!input$showInteract){
         gv <- ggvis()
       }else{
-        sampleXname <- switch(input$xAxis, 
-                              "Embryonic MNs" = "embryonic_MN", 
-                              "iMNs" = "iMN", 
-                              "ESC MNs" = "mES_MN", 
-                              "iPSC MNs" = "miPS_MN", 
-                              "ESC" = "mES", 
-                              "iPSC" = "miPS", 
-                              "MEF1" = "Fib_d15_N3",
-                              "MEF2" = "Fib_d15_FBS", 
-                              "MEF3" = "Fib_d15_FBS_1p", 
-                              "MEF4" = "Fib_d2_FBS")
-        
-        sampleYname <- switch(input$yAxis, 
-                              "Embryonic MNs" = "embryonic_MN", 
-                              "iMNs" = "iMN", 
-                              "ESC MNs" = "mES_MN", 
-                              "iPSC MNs" = "miPS_MN", 
-                              "ESC" = "mES", 
-                              "iPSC" = "miPS", 
-                              "MEF1" = "Fib_d15_N3",
-                              "MEF2" = "Fib_d15_FBS", 
-                              "MEF3" = "Fib_d15_FBS_1p", 
-                              "MEF4" = "Fib_d2_FBS")
+        sampleXname <- input$xAxis
+          
+        sampleYname <- input$yAxis
         
         # determine axis transformation. 
         if(input$fpkmTransform == 1){
@@ -290,7 +206,11 @@ shinyServer(
       
     })
     
+    geneExpression<-reactive({
+      expressionPlot <- genePlotting(input$geneId, fpkm)
+    })
     
+    ################### below are output calls. 
     
     output$plot1 <- renderPlot({
       print(plots())
@@ -329,12 +249,9 @@ shinyServer(
         write.table(tableOut(), file, sep="\t", quote=F, row.names=F)
       })
     
-    
-    
-    
-    
-    
-    
+    output$geneExpression <- renderPlot({
+      print(geneExpression())
+      })
     
     
   })

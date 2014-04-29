@@ -123,12 +123,18 @@ shinyUI(navbarPage(
            fluidRow(
              column(3, 
                     wellPanel(
-                      helpText("options for gene plots here")
+                      helpText("Eventually will hopefully allow autocomplete of gene names, 
+                               but for now you must enter a proper ID, case sensitive"),
+                      # TO DO : better gene input see shiny sky or adapt selectize js. 
+                      # TO DO : error handling for no gene and duplicate genes.
+                      # TO DO : provide submit button. 
+                      textInput("geneId", label="Select gene", value="Mnx1")
+                                     
                     )), 
              column(9, 
                     tabsetPanel(
                       tabPanel("Plot", 
-                               h1("plot")
+                               plotOutput("geneExpression")
                       )
                     )
              )
