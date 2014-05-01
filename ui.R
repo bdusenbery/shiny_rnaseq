@@ -2,6 +2,7 @@ library(ggvis)
 library("shinyIncubator")
 shinyUI(navbarPage(
   "iMN paper resource", 
+  # About panel -------------------------------------------------------------------
   tabPanel("About", 
            fluidRow(
              column(9,
@@ -13,9 +14,9 @@ shinyUI(navbarPage(
              )
            )
   ),
-  
+  # comparison Explorer controls -----------------
   tabPanel("Comparison Explorer",
-          
+           
            fluidRow(
              column(3, 
                     wellPanel(
@@ -76,13 +77,16 @@ shinyUI(navbarPage(
                       )
                     )                    
              ), 
+             # comparison explorer outputs --------
              column(9, 
                     tabsetPanel(
+                      # comparison explorer static plot -----------
                       tabPanel("Plot", 
                                h1(textOutput("titleText")), 
                                h3(textOutput("text1")),
                                plotOutput("plot1", height="500px", width="500px")
                       ),
+                      # comparison explorer interactive plot -----------
                       tabPanel("Interactive Plot", 
                                fluidRow(
                                  column(4, 
@@ -104,6 +108,7 @@ shinyUI(navbarPage(
                                  )
                                )
                       ), 
+                      # comparison exploerer data download ----------
                       tabPanel("data",
                                fluidRow(
                                  column(8, 
@@ -119,6 +124,7 @@ shinyUI(navbarPage(
              )
            )
   ),
+  # gene Explorer -----------
   tabPanel("Gene Explorer",
            fluidRow(
              column(3, 
@@ -127,19 +133,84 @@ shinyUI(navbarPage(
                                but for now you must enter a proper ID, case sensitive"),
                       # TO DO : better gene input see shiny sky or adapt selectize js. 
                       # TO DO : error handling for no gene and duplicate genes.
+                      # TO DO : provide ensemble ID input 
                       # TO DO : provide submit button. 
+                      # TO DO : consider making this float.
                       textInput("geneId", label="Select gene", value="Mnx1")
-                                     
+                      
                     )), 
+             # gene Explorer expression plots ------------
              column(9, 
                     tabsetPanel(
-                      tabPanel("Plot", 
-                               plotOutput("geneExpression")
+                      tabPanel("Gene Expression", 
+                               # TO DO : put gene id in a box, make ensembl linkout
+                               wellPanel(
+                                 h3(textOutput("geneInfo1"))
+                               ),
+                               h4("Gene expression across samples"),
+                               plotOutput("geneExpression"),
+                               br(),
+                               h4("Significance Matrix between samples"),
+                               plotOutput("sigMat",  height="500px", width="600px")
+                               
+                      ),
+                      # Gene Explorer isoform plots --------------
+                      tabPanel("Isoform Expression", 
+                               # TO DO : consider printing out isoform expression or providing table- 
+                               # currently can't copy and paste isoform ids. 
+                               # alternatively it would be awesome to show structure and even more awesome
+                               # if we could do this in the same colors as the pies 
+                               wellPanel(
+                                 fluidRow(
+                                   column(3, 
+                                          # select type of plot to show for isoform plots
+                                          selectInput(inputId="showIsoType", 
+                                                      label="Show Isoforms as:", 
+                                                      choices= c("Bar Plot", "Pie Chart"), 
+                                                      selected="Pie Chart")
+                                   ),
+                                   column(3, 
+                                          # select if isoforms should be normalized to total expression
+                                          radioButtons(inputId="normalizeIsoforms", 
+                                                       label="Normalize Isoforms to total gene expression", 
+                                                       choices=list("yes" = 1, "no" = 2), 
+                                                       selected = 1)
+                                   ),
+                                   column(3, 
+                                          selectInput(inputId="numberIso", 
+                                                      label="Maximum number of most abundant isoforms to show:", 
+                                                      choices = c(1:20), 
+                                                      selected = 8)
+                                   ),
+                                   column(3, 
+                                          helpText("Normalizing to total gene expression shows relative levels
+                                                 of isoforms, otherwise percents of each isoform is shown. 
+                                                 Most abundant isoforms are determined as mean across all samples")
+                                   )
+                                 )
+                               ),
+                               fluidRow(
+                                 h3(textOutput("isoformReportingText")),
+                                 br(),
+                                 plotOutput("isoformPlot", height="500px", width="600px")
+                                 
+                               )
+                      ),
+                      # Gene explorer promoter methylation. 
+                      tabPanel("Promoter Methylation", 
+                               fluidRow(
+                                 wellPanel(
+                                   h3(textOutput("methylGeneInfo")),
+                                   h4(textOutput("methylGenePosition"))
+                                 )),
+                               fluidRow(
+                                 plotOutput("methylationPlot", height="500px", width="600px")
+                               )
                       )
-                    )
-             )
-           )
-  )
+                    ))
+             
+           ))
 ))
+
 
 

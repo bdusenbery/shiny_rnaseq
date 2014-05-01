@@ -12,6 +12,7 @@ fpkm <- readRDS("data/genesFpkm.rds")
 fpkm$sample_good_name <- factor(fpkm$sample_good_name, levels =c(
   "Embryonic MNs", "iMNs", "ESC MNs", "iPSC MNs", "MEF1", "MEF2", "MEF3", "MEF4","ESC", "iPSC"), 
   ordered=T)
+isoFpkm <- readRDS("data/isoform_fpkm.rds")
 
 
 source("helper.R")
@@ -206,8 +207,72 @@ shinyServer(
       
     })
     
+    
+    # gene id and ensembl ID
+    # TO DO: convert Ensembl id here to a linkout to ensembl website
+    geneInfo <- reactive({ 
+      geneInfo <- paste(input$geneId, "--",   
+                         unique(as.character(fpkm[(fpkm$gene %in% input$geneId), "ensembl_id"])), sep=" ")
+      })
+    
+    # gene expression bar plot 
     geneExpression<-reactive({
       expressionPlot <- genePlotting(input$geneId, fpkm)
+    })
+    
+    # gene expression significance matrix
+    sigMatRes <- reactive({
+      sigMatrixRes <- sigMatrix(input$geneId, dat)
+    })
+    
+    ###### controls for isoform expression. 
+    processedIso <- reactive({
+      processedIso <- isoformProcess(input$geneId, isoFpkm) 
+    })
+    
+    # return total number of isoforms, 
+    isoNumbText <- reactive({
+      numIso <- nrow(processedIso())/10
+      if(numIso <= input$numberIso){
+        isotext <- paste("Showing", numIso, "of", numIso, "observed isoforms")
+      }else{
+        isotext <- paste("Showing", input$numberIso, "of", numIso, "observed isoforms")
+      }
+      })
+    
+    # if total number of isoforms exceeds selected input, limit to selected. 
+    processedIsoFinal <- reactive({
+      numIso <- nrow(processedIso())/10
+      if(numIso <= input$numberIso){
+        final <- processedIso()
+      }else{
+        # rows to keep is * 10 because there are 10 samples per isoform. 
+        rowsKeep <- input$numberIso * 10
+        final <- processedIso()[1:rowsKeep]
+      }
+    })
+    
+    # generate isoform plot. 
+    isoPlot <- reactive({
+      transcriptPlot(processedIsoFinal(), input$showIsoType, input$normalizeIsoforms)
+    })
+    
+    # select methylation data. 
+    methData <- reactive({
+      res <- methDat[(methDat$geneNames %in% input$geneId),]
+    })
+    
+    #output text for methylation data gene name. 
+    methtext1 <- reactive({
+      paste(input$geneId, "--" , as.character(unique(methData()$ensemblIds)))
+    })
+    #output text for methylation gene postion. 
+    methtext2 <- reactive({
+      paste("Promoter location (mm9 assembly) :", as.character(unique(methData()$position)))
+    })
+    #output plot for methylation data. 
+    methPlotOut <- reactive({
+      methPlotOut <- methPlot(methData()) 
     })
     
     ################### below are output calls. 
@@ -248,10 +313,45 @@ shinyServer(
       content = function(file){
         write.table(tableOut(), file, sep="\t", quote=F, row.names=F)
       })
+   
+    # Gene Info for gene expression page:
+    output$geneInfo1 <- renderText({
+      geneInfo()
+    })
     
+    # gene expression bar plot
     output$geneExpression <- renderPlot({
       print(geneExpression())
       })
     
+    # gene sig matrix
+    output$sigMat <- renderPlot({
+      print(sigMatRes())
+    })
+    
+    # isoform outputs. 
+    output$isoformReportingText <- renderText({
+      isoNumbText()
+    })
+    
+    # isoform plot 
+    output$isoformPlot <- renderPlot({
+      print(isoPlot())
+    })
+    
+    # methylation text1
+    output$methylGeneInfo <- renderText({
+      methtext1()
+    })
+    
+    # methylation text2
+    output$methylGenePosition <- renderText({
+      methtext2()
+    })
+    
+    # methylation plot
+    output$methylationPlot <- renderPlot({
+      print(methPlotOut())
+    })
     
   })
