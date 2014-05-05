@@ -13,10 +13,12 @@ fpkm$sample_good_name <- factor(fpkm$sample_good_name, levels =c(
   "Embryonic MNs", "iMNs", "ESC MNs", "iPSC MNs", "MEF1", "MEF2", "MEF3", "MEF4","ESC", "iPSC"), 
   ordered=T)
 isoFpkm <- readRDS("data/isoform_fpkm.rds")
+methDat <- readRDS("data/methylation.rds")
+geneIds <- readRDS("data/mouseGeneInfo.rds")
 
 
 source("helper.R")
-#allGeneIds <- as.character(fpkm$gene)
+
 
 shinyServer(
   function(input, output, session) {
@@ -207,28 +209,79 @@ shinyServer(
       
     })
     
-    
-    # gene id and ensembl ID
-    # TO DO: convert Ensembl id here to a linkout to ensembl website
-    geneInfo <- reactive({ 
-      geneInfo <- paste(input$geneId, "--",   
-                         unique(as.character(fpkm[(fpkm$gene %in% input$geneId), "ensembl_id"])), sep=" ")
+    # gene id input. if input is gene symbol, get ensembl id. 
+    # if there are multiple ensembl ids, warn. 
+    geneData <- reactive({
+      # depend on get gene button. 
+      input$update
+      isolate({
+      if(input$idType == "Official Gene Symbol"){
+        geneDat <- geneIds[(geneIds$mgi_symbol %in% input$geneId),]
+      }else{
+        geneDat <- geneIds[(geneIds$ensembl_gene_id %in% input$geneId),]
+      }
       })
+    })
     
+    # if geneData returns a single entry, show gene information,
+    # if more than one, provide info. 
+    # if no matches, suggest. 
+    # TO DO: make formating a little nicer. 
+    geneInfo <- reactive({
+      numberGenesFound <- nrow(geneData())
+      if (numberGenesFound == 0){
+        geneInfo <- "No gene found, did you mean:"
+      } else if (numberGenesFound == 1){
+        geneInfo <- paste(geneData()$mgi_symbol, 
+                           "--", geneData()$description, 
+                          "ensembl link:", geneData()$ensembl_gene_id,
+                           "entrez gene link:", geneData()$entrezgene 
+                           )
+      }else{
+        dupids <- paste(c(as.character(geneData()$ensembl_gene_id)), collapse=", ")
+        
+        geneInfo <- paste("Multiple genes found with gene symbol:", unique(geneData()$mgi_symbol), 
+                          "Select one Ensembl Id:", dupids)
+      }
+       })
+
     # gene expression bar plot 
     geneExpression<-reactive({
-      expressionPlot <- genePlotting(input$geneId, fpkm)
+      geneId <- geneData()$ensembl_gene_id
+      if(length(geneId) == 1){
+      expressionPlot <- genePlotting(geneId, fpkm)
+      }else{
+        expressionPlot <- qplot(1:10, 1:10, geom="blank")+
+          geom_text(aes(x=5, y=5), label="Select a new\ngene ID", 
+                    size=14, color="#bdbdbd")+theme_classic()+
+          theme(axis.text=element_blank(), axis.ticks= element_blank(), 
+                line=element_blank())+xlab("")+ylab("")
+      }
     })
     
     # gene expression significance matrix
     sigMatRes <- reactive({
-      sigMatrixRes <- sigMatrix(input$geneId, dat)
+      geneId <- geneData()$ensembl_gene_id
+      if(length(geneId) == 1){
+      sigMatrixRes <- sigMatrix(geneId, dat)
+      }else{
+        expressionPlot <- qplot(1:10, 1:10, geom="blank")+
+          geom_text(aes(x=5, y=5), label="Select a new\ngene ID", 
+                    size=14, color="#bdbdbd")+theme_classic()+
+          theme(axis.text=element_blank(), axis.ticks= element_blank(), 
+                line=element_blank())+xlab("")+ylab("")
+      }
     })
     
     ###### controls for isoform expression. 
     processedIso <- reactive({
-      processedIso <- isoformProcess(input$geneId, isoFpkm) 
+      geneId <- geneData()$ensembl_gene_id
+      if(length(geneId) == 1){
+      processedIso <- isoformProcess(geneId, isoFpkm)
+      }
     })
+    
+   
     
     # return total number of isoforms, 
     isoNumbText <- reactive({
@@ -252,27 +305,57 @@ shinyServer(
       }
     })
     
+    isoformTableDat <- reactive({
+      show <- processedIsoFinal()[c("tracking_id", "length")]
+      show <- show[!duplicated(show$tracking_id),]
+      show$transcript <- show$tracking_id
+      show <- show[c("transcript", "length")]
+    })
+    
     # generate isoform plot. 
     isoPlot <- reactive({
-      transcriptPlot(processedIsoFinal(), input$showIsoType, input$normalizeIsoforms)
+      geneId <- geneData()$ensembl_gene_id
+      if(length(geneId) == 1){
+      isoPlot <- transcriptPlot(processedIsoFinal(), input$showIsoType, input$normalizeIsoforms)
+      }else{
+        isoPlot <- qplot(1:10, 1:10, geom="blank")+
+          geom_text(aes(x=5, y=5), label="Select a new\ngene ID", 
+                    size=14, color="#bdbdbd")+theme_classic()+
+          theme(axis.text=element_blank(), axis.ticks= element_blank(), 
+                line=element_blank())+xlab("")+ylab("")
+      }
     })
     
     # select methylation data. 
+    # ensembl ids in methylation data are more difficult. 
+    # also, sometimes there are multiple promoter regions associated with one gene: 
     methData <- reactive({
-      res <- methDat[(methDat$geneNames %in% input$geneId),]
+      geneId <- geneData()$mgi_symbol
+      
+        res <- methDat[(methDat$geneNames %in% geneId),]
+      
     })
     
     #output text for methylation data gene name. 
-    methtext1 <- reactive({
-      paste(input$geneId, "--" , as.character(unique(methData()$ensemblIds)))
-    })
+    
     #output text for methylation gene postion. 
     methtext2 <- reactive({
+      if(nrow(methData()) > 0){
       paste("Promoter location (mm9 assembly) :", as.character(unique(methData()$position)))
-    })
+      }
+      })
     #output plot for methylation data. 
     methPlotOut <- reactive({
-      methPlotOut <- methPlot(methData()) 
+      if(nrow(methData() > 0)){
+        methPlotOut <- methPlot(methData()) 
+      }else{
+        methPlotOut <- qplot(1:10, 1:10, geom="blank")+
+          geom_text(aes(x=5, y=5), label="No methylation data\nfor this gene", 
+                    size=14, color="#bdbdbd")+theme_classic()+
+          theme(axis.text=element_blank(), axis.ticks= element_blank(), 
+                line=element_blank())+xlab("")+ylab("")
+      }
+      
     })
     
     ################### below are output calls. 
@@ -329,6 +412,16 @@ shinyServer(
       print(sigMatRes())
     })
     
+    # gene data for isoform page. 
+    output$isoformStatus <- renderText({
+      geneInfo()
+    })
+    
+    # isoform data for table. 
+    output$isoformTable <- renderTable({
+      isoformTableDat()
+    }, include.rownames = FALSE)
+    
     # isoform outputs. 
     output$isoformReportingText <- renderText({
       isoNumbText()
@@ -339,9 +432,10 @@ shinyServer(
       print(isoPlot())
     })
     
-    # methylation text1
+   
+    # gene info display for methylation page. 
     output$methylGeneInfo <- renderText({
-      methtext1()
+      geneInfo()
     })
     
     # methylation text2

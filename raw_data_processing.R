@@ -163,3 +163,10 @@ methPlot <- function(GOI, methDat){
     geom_hline(y=.6, color="#bdbdbd", linetype="dashed")+
     theme(axis.text.x=element_text(angle=45, hjust=1, size=12), legend.position="none")
 }
+
+
+
+geneIds <- readRDS("mouseGeneInfo.rds")
+
+gene <- geneIds[()]
+

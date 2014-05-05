@@ -1,5 +1,5 @@
 genePlotting <- function(GOI, fpkmDf, ...){
-  res <- fpkmDf[(fpkmDf$gene %in% GOI),]
+  res <- fpkmDf[(fpkmDf$ensembl_id %in% GOI),]
   # determine max value
   max <- max(unlist(res$hi_error))
   plot <- ggplot(res, aes(x=sample_good_name, y=fpkm, fill=sample_good_name))+geom_bar(stat="identity")
@@ -13,7 +13,7 @@ genePlotting <- function(GOI, fpkmDf, ...){
 }
 
 sigMatrix <- function(GOI, diffDF){
-  res <- diffDF[(diffDF$gene %in% GOI),]
+  res <- diffDF[(diffDF$gene_id %in% GOI),]
   res2 <- res
   colnames(res2)[5] <- "sample_2"
   colnames(res2)[6] <- "sample_1"
@@ -34,7 +34,7 @@ sigMatrix <- function(GOI, diffDF){
 
 ## process isoforms. 
 isoformProcess <- function(GOI, isoFPKM){
-  res <- filter(isoFPKM, gene_short_name == GOI)
+  res <- filter(isoFPKM, gene_id == GOI)
   res <- group_by(res, tracking_id) 
   res <- mutate(res, avIso=mean(value))
   res <- arrange(res, desc(avIso))
@@ -100,7 +100,7 @@ transcriptPlot<- function(isoformProcessRes, type="Bar Plot", normalize=1, ...){
 
 methPlot <- function(res){
   methP <- ggplot(res, aes(x=variable, y=value, fill=variable))+geom_bar(stat="identity")
-  methP + scale_y_continuous(expand=c(0,0), limits=c(0,1.05))+theme_bw()+
+  methP + scale_y_continuous(expand=c(0,0), limits=c(0,1.05))+theme_bw()+facet_grid(position~.)+
     scale_fill_manual(values=c("#666699", "#0DB14B", "#008ccf", "#118697", 
                                "#744c28", "#8a5d3b", "#9a8478", "#594a41", "tan",
                                "#d8403f", "#f7931d"))+xlab("")+ylab("Methylation Ratio")+

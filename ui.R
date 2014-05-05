@@ -1,6 +1,7 @@
 library(ggvis)
 library("shinyIncubator")
 shinyUI(navbarPage(
+  progressInit(),
   "iMN paper resource", 
   # About panel -------------------------------------------------------------------
   tabPanel("About", 
@@ -136,8 +137,12 @@ shinyUI(navbarPage(
                       # TO DO : provide ensemble ID input 
                       # TO DO : provide submit button. 
                       # TO DO : consider making this float.
-                      textInput("geneId", label="Select gene", value="Mnx1")
-                      
+                      textInput("geneId", label="Select gene", value="Mnx1"),
+                      selectInput("idType", 
+                                  label="Gene identifier type:", 
+                                  choices=c("Official Gene Symbol", "Ensembl ID"),
+                                  selected = "Official Gene Symbol"),
+                      actionButton("update", "Get Gene")
                     )), 
              # gene Explorer expression plots ------------
              column(9, 
@@ -160,6 +165,15 @@ shinyUI(navbarPage(
                                # currently can't copy and paste isoform ids. 
                                # alternatively it would be awesome to show structure and even more awesome
                                # if we could do this in the same colors as the pies 
+                               fluidRow(
+                                 textOutput("isoformStatus"),
+                                 h5(textOutput("isoformReportingText")),
+                                 tableOutput("isoformTable")
+                                 ),  
+                               fluidRow(
+                                   br(),
+                                   plotOutput("isoformPlot", height="500px", width="600px")
+                                 ),
                                wellPanel(
                                  fluidRow(
                                    column(3, 
@@ -188,13 +202,8 @@ shinyUI(navbarPage(
                                                  Most abundant isoforms are determined as mean across all samples")
                                    )
                                  )
-                               ),
-                               fluidRow(
-                                 h3(textOutput("isoformReportingText")),
-                                 br(),
-                                 plotOutput("isoformPlot", height="500px", width="600px")
-                                 
                                )
+                               
                       ),
                       # Gene explorer promoter methylation. 
                       tabPanel("Promoter Methylation", 
